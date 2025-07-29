@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Träningsprogram Builder</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            min-height: 80vh;
+        }
+
+        .sidebar {
+            background: #f8f9fa;
+            border-right: 2px solid #e9ecef;
+            padding: 20px;
+        }
+
+        .template-selector {
+            margin-bottom: 30px;
+        }
+
+        .template-selector h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .template-btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 2px solid #3498db;
+            background: white;
+            color: #3498db;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .template-btn:hover, .template-btn.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .exercise-bank {
+            margin-bottom: 30px;
+        }
+
+        .exercise-bank h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .add-exercise-form {
+            margin-bottom: 20px;
+        }
+
+        .add-exercise-form input, .add-exercise-form select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .add-exercise-form button {
+            width: 100%;
+            padding: 10px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .add-exercise-form button:hover {
+            background: #219a52;
+        }
+
+        .exercise-filters {
+            margin-bottom: 20px;
+        }
+
+        .filter-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .category-filter {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .sort-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .sort-btn {
+            flex: 1;
+            padding: 8px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+        }
+
+        .sort-btn:hover {
+            background: #5a6268;
+        }
+
+        .sort-btn.active {
+            background: #3498db;
+        }
+
+        .csv-upload {
+            margin-bottom: 20px;
+        }
+
+        .csv-upload input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .exercise-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .exercise-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            cursor: grab;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .exercise-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .exercise-item:active {
+            cursor: grabbing;
+        }
+
+        .exercise-name {
+            flex: 1;
+        }
+
+        .exercise-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .category-badge {
+            background: #3498db;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .category-badge:hover {
+            opacity: 0.8;
+        }
+
+        .exercise-delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .exercise-delete-btn:hover {
+            background: #c0392b;
+        }
+
+        .category-badge.uppvärmning { background: #e74c3c; }
+        .category-badge.vägg-till-vägg { background: #f39c12; }
+        .category-badge.parövningar { background: #27ae60; }
+        .category-badge.kondition { background: #9b59b6; }
+        .category-badge.utmaning { background: #e67e22; }
+        .category-badge.teknik { background: #34495e; }
+        .category-badge.match { background: #16a085; }
+
+        .program-area {
+            padding: 20px;
+        }
+
+        .program-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .program-name-input {
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 16px;
+            width: 300px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .save-btn {
+            background: #27ae60;
+            color: white;
+        }
+
+        .save-btn:hover {
+            background: #219a52;
+        }
+
+        .pdf-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .pdf-btn:hover {
+            background: #c0392b;
+        }
+
+        .template-container {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .template-container.active {
+            display: grid;
+        }
+
+        .template-section {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .template-section.drag-over {
+            border-color: #3498db;
+            background: #e3f2fd;
+        }
+
+        .template-section h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .dropped-exercise {
+            background: white;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .remove-exercise {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .remove-exercise:hover {
+            background: #c0392b;
+        }
+
+        .saved-programs {
+            margin-top: 30px;
+        }
+
+        .saved-programs h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .saved-program-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .load-program-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .load-program-btn:hover {
+            background: #2980b9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .modal select, .modal button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            width: auto;
+            flex: 1;
+        }
+
+        .modal-save {
+            background: #27ae60;
+            color: white;
+            border: none;
+        }
+
+        .modal-cancel {
+            background: #6c757d;
+            color: white;
+            border: none;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .print-area, .print-area * {
+                visibility: visible;
+            }
+            .print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤼 Träningsprogram Builder</h1>
+            <p>Skapa dina egna träningsprogram med drag-och-släpp</p>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="template-selector">
+                    <h3>Välj Mall</h3>
+                    <button class="template-btn" onclick="selectTemplate('wresfit')">Wresfit</button>
+                    <button class="template-btn" onclick="selectTemplate('motionsbrottning')">Motionsbrottning</button>
+                </div>
+
+                <div class="exercise-bank">
+                    <h3>Övningsbank</h3>
+                    <div class="add-exercise-form">
+                        <input type="text" id="exerciseName" placeholder="Övningsnamn">
+                        <select id="exerciseCategory">
+                            <option value="">Välj kategori</option>
+                            <option value="uppvärmning">Uppvärmning</option>
+                            <option value="vägg-till-vägg">Vägg till Vägg</option>
+                            <option value="parövningar">Parövningar</option>
+                            <option value="kondition">Kondition</option>
+                            <option value="utmaning">Utmaning</option>
+                            <option value="teknik">Teknik övningar</option>
+                            <option value="match">Match-moment</option>
+                        </select>
+                        <button onclick="addExercise()">Lägg till övning</button>
+                    </div>
+                    
+                    <div class="csv-upload">
+                        <input type="file" id="csvFile" accept=".csv" onchange="loadCSV(event)">
+                    </div>
+
+                    <div class="exercise-filters">
+                        <div class="filter-controls">
+                            <select class="category-filter" id="categoryFilter" onchange="filterExercises()">
+                                <option value="">Alla kategorier</option>
+                                <option value="uppvärmning">Uppvärmning</option>
+                                <option value="vägg-till-vägg">Vägg till Vägg</option>
+                                <option value="parövningar">Parövningar</option>
+                                <option value="kondition">Kondition</option>
+                                <option value="utmaning">Utmaning</option>
+                                <option value="teknik">Teknik övningar</option>
+                                <option value="match">Match-moment</option>
+                            </select>
+                            <div class="sort-controls">
+                                <button class="sort-btn active" id="sortAZ" onclick="sortExercises('az')">A-Z</button>
+                                <button class="sort-btn" id="sortZA" onclick="sortExercises('za')">Z-A</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="exercise-list" id="exerciseList">
+                        <!-- Övningar läggs till här -->
+                    </div>
+                </div>
+
+                <div class="saved-programs">
+                    <h3>Sparade Program</h3>
+                    <div id="savedProgramsList">
+                        <!-- Sparade program visas här -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="program-area">
+                <div class="program-header">
+                    <input type="text" class="program-name-input" id="programName" placeholder="Namn på träningsprogram">
+                    <div class="action-buttons">
+                        <button class="action-btn save-btn" onclick="saveProgram()">💾 Spara Program</button>
+                        <button class="action-btn pdf-btn" onclick="exportToPDF()">📄 Exportera PDF</button>
+                    </div>
+                </div>
+
+                <!-- Wresfit Mall -->
+                <div id="wresfit-template" class="template-container">
+                    <div class="template-section" data-section="uppvärmning" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <h4>1. Uppvärmning</h4>
+                        <div class="section-exercises"></div>
+                    </div>
+                    <div class="template-section" data-section="vägg-till-vägg" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <h4>2. Vägg till Vägg</h4>
+                        <div class="section-exercises"></div>
+                    </div>
+                    <div class="template-section" data-section="parövningar" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <h4>3. Parövningar</h4>
+                        <div class="section-exercises"></div>
+                    </div>
+                    <div class="template-section" data-section="kondition" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <h4>4. Kondition</h4>
+                        <div class="section-exercises"></div>
+                    </div>
+                    <div class="template-section" data-section="utmaning" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <h4>5. Utmaning</h4>
+                        <div class="section-exercises"></div>
+                    </div>
+                </div>
+
+                <!-- Motionsbrottning Mall -->
+                <div id="motionsbrottning-template" class="template-container">
+                    <div class="template-section" data-section="uppvärmning" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <h4>1. Uppvärmning</h4>
+                        <div class="section-exercises"></div>
+                    </div>
+                    <div class="template-section" data-section="parövningar" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <h4>2. Parövningar</h4>
+                        <div class="section-exercises"></div>
+                    </div>
+                    <div class="template-section" data-section="teknik" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <h4>3. Teknik övningar</h4>
+                        <div class="section-exercises"></div>
+                    </div>
+                    <div class="template-section" data-section="match" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <h4>4. Match-moment</h4>
+                        <div class="section-exercises"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal för att ändra kategori -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <h3>Ändra kategori</h3>
+            <p id="exerciseNameDisplay"></p>
+            <select id="newCategorySelect">
+                <option value="">Välj kategori</option>
+                <option value="uppvärmning">Uppvärmning</option>
+                <option value="vägg-till-vägg">Vägg till Vägg</option>
+                <option value="parövningar">Parövningar</option>
+                <option value="kondition">Kondition</option>
+                <option value="utmaning">Utmaning</option>
+                <option value="teknik">Teknik övningar</option>
+                <option value="match">Match-moment</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="modal-save" onclick="saveCategory()">Spara</button>
+                <button class="modal-cancel" onclick="closeModal()">Avbryt</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTemplate = '';
+        let currentSort = 'az';
+        let currentFilter = '';
+        let editingExerciseIndex = -1;
+        let exercises = [
+            { name: 'Armhävningar', category: 'kondition' },
+            { name: 'Sit-ups', category: 'kondition' },
+            { name: 'Burpees', category: 'kondition' },
+            { name: 'Plankan', category: 'kondition' },
+            { name: 'Squats', category: 'kondition' },
+            { name: 'Lunges', category: 'kondition' },
+            { name: 'Mountain climbers', category: 'kondition' },
+            { name: 'Jumping jacks', category: 'uppvärmning' },
+            { name: 'High knees', category: 'uppvärmning' },
+            { name: 'Butt kicks', category: 'uppvärmning' },
+            { name: 'Push-ups', category: 'kondition' },
+            { name: 'Crunches', category: 'kondition' },
+            { name: 'Russian twists', category: 'kondition' }
+        ];
+        let savedPrograms = JSON.parse(localStorage.getItem('savedPrograms')) || [];
+
+        // Initiera applikationen
+        function init() {
+            updateExerciseList();
+            updateSavedProgramsList();
+        }
+
+        // Välj mall
+        function selectTemplate(template) {
+            currentTemplate = template;
+            
+            // Uppdatera knappar
+            document.querySelectorAll('.template-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Visa rätt mall
+            document.querySelectorAll('.template-container').forEach(container => {
+                container.classList.remove('active');
+            });
+            document.getElementById(template + '-template').classList.add('active');
+        }
+
+        // Lägg till övning
+        function addExercise() {
+            const exerciseName = document.getElementById('exerciseName').value.trim();
+            const exerciseCategory = document.getElementById('exerciseCategory').value;
+            
+            if (exerciseName && !exercises.some(ex => ex.name === exerciseName)) {
+                exercises.push({ 
+                    name: exerciseName, 
+                    category: exerciseCategory || 'allmän' 
+                });
+                updateExerciseList();
+                document.getElementById('exerciseName').value = '';
+                document.getElementById('exerciseCategory').value = '';
+            }
+        }
+
+        // Uppdatera övningslista
+        function updateExerciseList() {
+            const exerciseList = document.getElementById('exerciseList');
+            exerciseList.innerHTML = '';
+            
+            let filteredExercises = exercises;
+            
+            // Filtrera efter kategori
+            if (currentFilter) {
+                filteredExercises = exercises.filter(ex => ex.category === currentFilter);
+            }
+            
+            // Sortera
+            filteredExercises.sort((a, b) => {
+                if (currentSort === 'az') {
+                    return a.name.localeCompare(b.name, 'sv');
+                } else {
+                    return b.name.localeCompare(a.name, 'sv');
+                }
+            });
+            
+            filteredExercises.forEach((exercise, index) => {
+                const originalIndex = exercises.findIndex(ex => ex.name === exercise.name);
+                const exerciseItem = document.createElement('div');
+                exerciseItem.className = 'exercise-item';
+                exerciseItem.draggable = true;
+                exerciseItem.innerHTML = `
+                    <span class="exercise-name">${exercise.name}</span>
+                    <div class="exercise-controls">
+                        <span class="category-badge ${exercise.category}">${exercise.category}</span>
+                        <button class="exercise-delete-btn">✕</button>
+                    </div>
+                `;
+                
+                // Lägg till event listeners separat
+                const categoryBadge = exerciseItem.querySelector('.category-badge');
+                const deleteBtn = exerciseItem.querySelector('.exercise-delete-btn');
+                
+                categoryBadge.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    editCategory(originalIndex);
+                });
+                
+                deleteBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    deleteExercise(originalIndex);
+                });
+                
+                exerciseItem.ondragstart = function(e) {
+                    // Förhindra drag om man klickar på kontroller
+                    if (e.target.classList.contains('exercise-delete-btn') || e.target.classList.contains('category-badge')) {
+                        e.preventDefault();
+                        return false;
+                    }
+                    e.dataTransfer.setData('text/plain', exercise.name);
+                };
+                exerciseList.appendChild(exerciseItem);
+            });
+        }
+
+        // Filtrera övningar
+        function filterExercises() {
+            currentFilter = document.getElementById('categoryFilter').value;
+            updateExerciseList();
+        }
+
+        // Sortera övningar
+        function sortExercises(sortType) {
+            currentSort = sortType;
+            
+            // Uppdatera knappar
+            document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(sortType === 'az' ? 'sortAZ' : 'sortZA').classList.add('active');
+            
+            updateExerciseList();
+        }
+
+        // Ladda CSV fil
+        function loadCSV(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const csv = e.target.result;
+                    const lines = csv.split('\n');
+                    lines.forEach(line => {
+                        const parts = line.trim().split(',');
+                        if (parts.length >= 1 && parts[0]) {
+                            const exerciseName = parts[0].trim();
+                            const exerciseCategory = parts[1] ? parts[1].trim() : 'allmän';
+                            
+                            if (!exercises.some(ex => ex.name === exerciseName)) {
+                                exercises.push({ 
+                                    name: exerciseName, 
+                                    category: exerciseCategory 
+                                });
+                            }
+                        }
+                    });
+                    updateExerciseList();
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Drag and drop funktioner
+        function allowDrop(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.add('drag-over');
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.remove('drag-over');
+            
+            const exercise = ev.dataTransfer.getData('text/plain');
+            const sectionExercises = ev.currentTarget.querySelector('.section-exercises');
+            
+            const exerciseDiv = document.createElement('div');
+            exerciseDiv.className = 'dropped-exercise';
+            exerciseDiv.innerHTML = `
+                <span>${exercise}</span>
+                <button class="remove-exercise" onclick="removeExercise(this)">✕</button>
+            `;
+            
+            sectionExercises.appendChild(exerciseDiv);
+        }
+
+        // Ta bort övning från sektion
+        function removeExercise(button) {
+            button.parentElement.remove();
+        }
+
+        // Spara program
+        function saveProgram() {
+            const programName = document.getElementById('programName').value.trim();
+            if (!programName) {
+                alert('Ange ett namn för träningsprogrammet');
+                return;
+            }
+            
+            if (!currentTemplate) {
+                alert('Välj en mall först');
+                return;
+            }
+
+            const programData = {
+                name: programName,
+                template: currentTemplate,
+                sections: {}
+            };
+
+            const activeTemplate = document.getElementById(currentTemplate + '-template');
+            const sections = activeTemplate.querySelectorAll('.template-section');
+            
+            sections.forEach(section => {
+                const sectionName = section.dataset.section;
+                const exercises = Array.from(section.querySelectorAll('.dropped-exercise span')).map(span => span.textContent);
+                programData.sections[sectionName] = exercises;
+            });
+
+            savedPrograms.push(programData);
+            localStorage.setItem('savedPrograms', JSON.stringify(savedPrograms));
+            updateSavedProgramsList();
+            alert('Program sparat!');
+        }
+
+        // Uppdatera lista över sparade program
+        function updateSavedProgramsList() {
+            const list = document.getElementById('savedProgramsList');
+            list.innerHTML = '';
+            
+            savedPrograms.forEach((program, index) => {
+                const programItem = document.createElement('div');
+                programItem.className = 'saved-program-item';
+                programItem.innerHTML = `
+                    <span>${program.name} (${program.template})</span>
+                    <button class="load-program-btn" onclick="loadProgram(${index})">Ladda</button>
+                `;
+                list.appendChild(programItem);
+            });
+        }
+
+        // Ladda sparat program
+        function loadProgram(index) {
+            const program = savedPrograms[index];
+            
+            // Välj rätt mall
+            selectTemplate(program.template);
+            document.querySelector(`button[onclick="selectTemplate('${program.template}')"]`).classList.add('active');
+            
+            // Sätt programnamn
+            document.getElementById('programName').value = program.name;
+            
+            // Rensa befintliga övningar
+            document.querySelectorAll('.section-exercises').forEach(section => {
+                section.innerHTML = '';
+            });
+            
+            // Ladda övningar
+            const activeTemplate = document.getElementById(program.template + '-template');
+            Object.keys(program.sections).forEach(sectionName => {
+                const section = activeTemplate.querySelector(`[data-section="${sectionName}"] .section-exercises`);
+                program.sections[sectionName].forEach(exercise => {
+                    const exerciseDiv = document.createElement('div');
+                    exerciseDiv.className = 'dropped-exercise';
+                    exerciseDiv.innerHTML = `
+                        <span>${exercise}</span>
+                        <button class="remove-exercise" onclick="removeExercise(this)">✕</button>
+                    `;
+                    section.appendChild(exerciseDiv);
+                });
+            });
+        }
+
+        // Exportera till PDF
+        function exportToPDF() {
+            const programName = document.getElementById('programName').value.trim() || 'Träningsprogram';
+            
+            if (!currentTemplate) {
+                alert('Välj en mall först');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Titel
+            doc.setFontSize(20);
+            doc.text(programName, 20, 20);
+            
+            doc.setFontSize(14);
+            doc.text(`Mall: ${currentTemplate}`, 20, 35);
+            
+            let yPosition = 50;
+            const activeTemplate = document.getElementById(currentTemplate + '-template');
+            const sections = activeTemplate.querySelectorAll('.template-section');
+            
+            sections.forEach(section => {
+                const sectionTitle = section.querySelector('h4').textContent;
+                const exercises = Array.from(section.querySelectorAll('.dropped-exercise span')).map(span => span.textContent);
+                
+                // Sektion titel
+                doc.setFontSize(16);
+                doc.text(sectionTitle, 20, yPosition);
+                yPosition += 10;
+                
+                // Övningar
+                doc.setFontSize(12);
+                exercises.forEach(exercise => {
+                    doc.text(`• ${exercise}`, 25, yPosition);
+                    yPosition += 8;
+                });
+                
+                yPosition += 5;
+                
+                // Kontrollera om vi behöver ny sida
+                if (yPosition > 250) {
+                    doc.addPage();
+                    yPosition = 20;
+                }
+            });
+            
+            // Öppna PDF i ny flik istället för att ladda ner
+            const pdfBlob = doc.output('blob');
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            window.open(pdfUrl, '_blank');
+        }
+
+        // Förhindra drag over på andra element
+        document.addEventListener('dragover', function(e) {
+            if (!e.target.closest('.template-section')) {
+                e.target.classList.remove('drag-over');
+            }
+        });
+
+        // Ta bort övning
+        function deleteExercise(index) {
+            if (confirm(`Är du säker på att du vill ta bort "${exercises[index].name}"?`)) {
+                exercises.splice(index, 1);
+                updateExerciseList();
+            }
+        }
+
+        // Redigera kategori
+        function editCategory(index) {
+            editingExerciseIndex = index;
+            const exercise = exercises[index];
+            
+            document.getElementById('exerciseNameDisplay').textContent = `Övning: ${exercise.name}`;
+            document.getElementById('newCategorySelect').value = exercise.category;
+            document.getElementById('categoryModal').style.display = 'block';
+        }
+
+        // Spara ny kategori
+        function saveCategory() {
+            const newCategory = document.getElementById('newCategorySelect').value;
+            if (editingExerciseIndex >= 0 && newCategory) {
+                exercises[editingExerciseIndex].category = newCategory;
+                updateExerciseList();
+                closeModal();
+            }
+        }
+
+        // Stäng modal
+        function closeModal() {
+            document.getElementById('categoryModal').style.display = 'none';
+            editingExerciseIndex = -1;
+        }
+
+        // Stäng modal när man klickar utanför
+        window.onclick = function(event) {
+            const modal = document.getElementById('categoryModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Initiera när sidan laddas
+        init();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'966cecfca473b8a4',t:'MTc1Mzc5NTM1My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
